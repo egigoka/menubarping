@@ -1,0 +1,54 @@
+name: Build and Publish on Tag
+
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build app
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project MenubarPing.xcodeproj \
+            -scheme MenubarPing \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Package app
+        run: |
+          set -euo pipefail
+          APP_PATH="build/Build/Products/Release/MenubarPing.app"
+          if [[ ! -d "$APP_PATH" ]]; then
+            echo "error: app bundle not found at $APP_PATH" >&2
+            exit 1
+          fi
+
+          ARCHIVE_NAME="MenubarPing-${GITHUB_REF_NAME}.zip"
+          ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$ARCHIVE_NAME"
+          echo "archive_name=$ARCHIVE_NAME" >> "$GITHUB_OUTPUT"
+        id: package
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MenubarPing-${{ github.ref_name }}
+          path: ${{ steps.package.outputs.archive_name }}
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.package.outputs.archive_name }}
+          generate_release_notes: true
