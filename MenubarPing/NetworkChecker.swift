@@ -82,8 +82,9 @@ actor NetworkChecker {
 
     private func checkBodyContains(urlString: String, expectedSubstring: String) async -> Bool {
         guard let url = URL(string: urlString) else { return false }
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalAndRemoteCacheData)
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
+            let (data, _) = try await URLSession.shared.data(for: request)
             let body = String(data: data, encoding: .utf8) ?? ""
             return body.contains(expectedSubstring)
         } catch {
@@ -93,8 +94,9 @@ actor NetworkChecker {
 
     private func checkBodyEquals(urlString: String, expectedBody: String) async -> Bool {
         guard let url = URL(string: urlString) else { return false }
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalAndRemoteCacheData)
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
+            let (data, _) = try await URLSession.shared.data(for: request)
             let body = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             return body == expectedBody
         } catch {
